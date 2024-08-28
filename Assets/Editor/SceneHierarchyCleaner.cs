@@ -16,7 +16,8 @@ public class SceneHierarchyCleaner : EditorWindow
 
     void OnGUI()
     {
-        if (GUILayout.Button("Clean Up Hierarchy"))
+
+        if (GUILayout.Button("Clean Up Prefab Hierarchy"))
         {
             CleanHierarchy();
         }
@@ -24,31 +25,67 @@ public class SceneHierarchyCleaner : EditorWindow
 
     void CleanHierarchy()
     {
-        // Get the active scene
-        Scene currentScene = EditorSceneManager.GetActiveScene();
-
-        // Get all the root game objects
-        GameObject[] rootGameObjects = currentScene.GetRootGameObjects();
-
-        List<GameObject> rootGameObjectsList = rootGameObjects.ToList();
-
-        rootGameObjectsList.Sort((x, y) => x.name.CompareTo(y.name));
-        foreach (GameObject rootGameObject in rootGameObjectsList)
+        
+        PrefabStage prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+        GameObject prefabContentsRoot = null;
+        if (prefabStage != null)
         {
+            prefabContentsRoot = prefabStage.prefabContentsRoot;
+            // Get all the root game objects
+            List<GameObject> rootGameObjects = new List<GameObject>();
+            foreach (Transform child in prefabContentsRoot.transform)
+            {
+                rootGameObjects.Add(child.gameObject);
+            }
 
-            rootGameObject.transform.SetAsLastSibling();
-            
+            List<GameObject> rootGameObjectsList = rootGameObjects.ToList();
+
+            rootGameObjectsList.Sort((x, y) => x.name.CompareTo(y.name));
+            foreach (GameObject rootGameObject in rootGameObjectsList)
+            {
+
+                rootGameObject.transform.SetAsLastSibling();
+
+            }
+
+            // Loop through each root game object
+            foreach (GameObject rootGameObject in rootGameObjects)
+            {
+                CleanHierarchy(rootGameObject);
+
+            }
+
+            // Mark prefab as dirty
+            EditorUtility.SetDirty(prefabContentsRoot);
         }
-
-        // Loop through each root game object
-        foreach (GameObject rootGameObject in rootGameObjects)
+        else
         {
-            CleanHierarchy(rootGameObject);
-            
-        }
+            // Get the active scene
+            Scene currentScene = EditorSceneManager.GetActiveScene();
 
-        // Mark the scene as dirty
-        EditorSceneManager.MarkSceneDirty(currentScene);
+
+            // Get all the root game objects
+            GameObject[] rootGameObjects = currentScene.GetRootGameObjects();
+
+            List<GameObject> rootGameObjectsList = rootGameObjects.ToList();
+
+            rootGameObjectsList.Sort((x, y) => x.name.CompareTo(y.name));
+            foreach (GameObject rootGameObject in rootGameObjectsList)
+            {
+
+                rootGameObject.transform.SetAsLastSibling();
+
+            }
+
+            // Loop through each root game object
+            foreach (GameObject rootGameObject in rootGameObjects)
+            {
+                CleanHierarchy(rootGameObject);
+
+            }
+            // Mark the scene as dirty
+            EditorSceneManager.MarkSceneDirty(currentScene);
+        }
     }
 
     void CleanHierarchy(GameObject root)
